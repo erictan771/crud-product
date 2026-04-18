@@ -11,7 +11,7 @@ FROM php:8.3-fpm-alpine
 WORKDIR /var/www
 
 # Install PHP extensions dan dependencies
-RUN apk add --no-cache \
+RUN apk update && apk add --no-cache \
     curl \
     libpng-dev \
     libxml2-dev \
@@ -20,7 +20,10 @@ RUN apk add --no-cache \
     git \
     oniguruma-dev \
     zlib-dev \
-    libzip-dev
+    libzip-dev \
+    nodejs \
+    npm \
+    curl
 
 RUN docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd zip
 
@@ -37,8 +40,8 @@ COPY --from=frontend-builder /app/public/build ./public/build
 RUN composer install --no-dev --optimize-autoloader
 
 # Set permissions
-RUN chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache
-RUN chmod -R 775 /var/www/storage /var/www/bootstrap/cache
+RUN chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache \
+    && chmod -R 775 /var/www/storage /var/www/bootstrap/cache
 
 EXPOSE 9000
 CMD ["php-fpm"]
