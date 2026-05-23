@@ -50,6 +50,13 @@ jobs:
         run: |
           docker compose exec -T app php artisan key:generate --force
 
+      - name: Wait for Database Connection
+        run: |
+          # Memberikan jeda 10 detik agar kontainer MySQL selesai booting
+          # dan siap menerima koneksi dari Laravel
+          echo "Waiting for MySQL to be ready..."
+          sleep 10
+
       - name: Run Database Migrations
         run: |
           docker compose exec -T app php artisan migrate --force
