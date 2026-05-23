@@ -1,17 +1,11 @@
-# --- Frontend Build Stage ---
-FROM node:20-alpine as frontend-builder
-WORKDIR /app
-COPY package*.json ./
-RUN npm install --legacy-peer-deps
-COPY . .
-RUN npm run build
-
 # --- Backend App Stage ---
 FROM php:8.3-fpm-alpine
 WORKDIR /var/www
 
-# Install PHP extensions dan dependencies
-RUN apk update && apk add --no-cache \
+# Fix potential repository issues and install PHP extensions + dependencies
+RUN sed -i 's/dl-cdn.alpinelinux.org/uk.alpinelinux.org/g' /etc/apk/repositories && \
+    apk update --no-cache && \
+    apk add --no-cache \
     curl \
     libpng-dev \
     libxml2-dev \
@@ -22,26 +16,6 @@ RUN apk update && apk add --no-cache \
     zlib-dev \
     libzip-dev \
     nodejs \
-    npm \
-    curl
+    npm
 
 RUN docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd zip
-
-# Install Composer
-COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
-
-# Copy kode aplikasi
-COPY . .
-
-# Copy assets hasil build dari stage frontend
-COPY --from=frontend-builder /app/public/build ./public/build
-
-# Install composer dependencies
-RUN composer install --no-dev --optimize-autoloader
-
-# Set permissions
-RUN chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache \
-    && chmod -R 775 /var/www/storage /var/www/bootstrap/cache
-
-EXPOSE 9000
-CMD ["php-fpm"]
