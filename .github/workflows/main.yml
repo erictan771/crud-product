@@ -41,7 +41,9 @@ jobs:
         run: |
           export DOCKER_BUILDKIT=1
           docker compose down
-          docker compose build --build-arg BUILDKIT_INLINE_CACHE=1 --network=host app
+
+          # Jalur alternatif tanpa flag network eksternal
+          docker compose build --build-arg BUILDKIT_INLINE_CACHE=1 app
           docker compose up -d
 
       - name: Initialize Laravel Application Key
