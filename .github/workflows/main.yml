@@ -1,1 +1,44 @@
-test
+name: Deploy Laravel App with Docker
+
+on:
+  push:
+    branches:
+      - main  # Triggers the deployment when you push to the main branch
+
+jobs:
+  deploy:
+    runs-on: self-hosted  # Tells GitHub to use your Ubuntu VM runner
+
+    steps:
+      - name: Checkout Repository Code
+        uses: actions/checkout@v4
+
+      - name: Create .env File
+        run: |
+          if [ ! -f .env ]; then
+            echo "Creating .env file from template..."
+            cp .env.example .env
+            # Modify production specific variables here if needed
+          fi
+
+      - name: Build and Start Containers
+        run: |
+          # --build forces docker to rebuild the image if files changed
+          # -d runs containers in the background (detached mode)
+          docker compose up --build -d
+
+      - name: Run Database Migrations
+        run: |
+          # Executing migrations inside the running 'app' container
+          docker compose exec -T app php artisan migrate --force
+
+      - name: Clear and Optimize Cache
+        run: |
+          docker compose exec -T app php artisan config:cache
+          docker compose exec -T app php artisan route:cache
+          docker compose exec -T app php artisan view:cache
+
+      - name: Cleanup Unused Docker Images
+        run: |
+          # Removes old dangling images left over from the build stage
+          docker image prune -f
