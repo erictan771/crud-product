@@ -1,17 +1,18 @@
+@ -1,44 +1,47 @@
 # --- Frontend Build Stage ---
 FROM node:20-alpine as frontend-builder
 WORKDIR /app
 COPY package*.json ./
 RUN npm install --legacy-peer-deps
 COPY . .
-ENV NODE_ENV=production
 RUN npm run build
 
 # --- Backend App Stage ---
 FROM php:8.3-fpm-alpine
 WORKDIR /var/www
 
-# Install ONLY the necessary system packages for production PHP
+# Install PHP extensions dan dependencies
+RUN apk add --no-cache \
 RUN apk update && apk add --no-cache \
     curl \
     libpng-dev \
@@ -22,23 +23,28 @@ RUN apk update && apk add --no-cache \
     oniguruma-dev \
     zlib-dev \
     libzip-dev
+    libzip-dev \
+    nodejs \
+    npm \
+    curl
 
-# Install PHP extensions
 RUN docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd zip
 
 # Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-# Copy application source code
+# Copy kode aplikasi
 COPY . .
 
-# Copy compiled frontend assets from the builder stage
+# Copy assets hasil build dari stage frontend
 COPY --from=frontend-builder /app/public/build ./public/build
 
-# Install production composer dependencies
+# Install composer dependencies
 RUN composer install --no-dev --optimize-autoloader
 
 # Set permissions
+RUN chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache
+RUN chmod -R 775 /var/www/storage /var/www/bootstrap/cache
 RUN chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache \
     && chmod -R 775 /var/www/storage /var/www/bootstrap/cache
 
