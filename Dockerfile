@@ -1,52 +1,59 @@
-@ -1,44 +1,47 @@
 # --- Frontend Build Stage ---
-FROM node:20-alpine as frontend-builder
+FROM node:20-alpine AS frontend-builder
 WORKDIR /app
-COPY package*.json ./
-RUN npm install --legacy-peer-deps
+
+COPY package.json package-lock.json ./
+RUN npm ci --legacy-peer-deps
+
 COPY . .
 RUN npm run build
 
 # --- Backend App Stage ---
-FROM php:8.3-fpm-alpine
+FROM php:8.3-fpm-alpine AS app
 WORKDIR /var/www
 
-# Install PHP extensions dan dependencies
 RUN apk add --no-cache \
-RUN apk update && apk add --no-cache \
+    bash \
     curl \
-    libpng-dev \
-    libxml2-dev \
-    zip \
-    unzip \
     git \
+    unzip \
+    zip \
+    icu-libs \
+    libzip \
+    libpng \
+    freetype \
+    libjpeg-turbo \
+  && apk add --no-cache --virtual .build-deps \
+    $PHPIZE_DEPS \
     oniguruma-dev \
-    zlib-dev \
-    libzip-dev
+    icu-dev \
     libzip-dev \
-    nodejs \
-    npm \
-    curl
+    libpng-dev \
+    freetype-dev \
+    libjpeg-turbo-dev
 
-RUN docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd zip
+RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
+  && docker-php-ext-install -j$(nproc) \
+    pdo_mysql \
+    mbstring \
+    exif \
+    pcntl \
+    bcmath \
+    gd \
+    zip \
+    intl \
+  && apk del .build-deps
 
-# Install Composer
-COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
-# Copy kode aplikasi
+COPY composer.json composer.lock ./
+RUN composer install --no-dev --optimize-autoloader --no-interaction --no-progress
+
 COPY . .
-
-# Copy assets hasil build dari stage frontend
 COPY --from=frontend-builder /app/public/build ./public/build
 
-# Install composer dependencies
-RUN composer install --no-dev --optimize-autoloader
-
-# Set permissions
-RUN chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache
-RUN chmod -R 775 /var/www/storage /var/www/bootstrap/cache
-RUN chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache \
-    && chmod -R 775 /var/www/storage /var/www/bootstrap/cache
+RUN chown -R www-data:www-data storage bootstrap/cache \
+  && chmod -R 775 storage bootstrap/cache
 
 EXPOSE 9000
 CMD ["php-fpm"]

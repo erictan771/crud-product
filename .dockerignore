@@ -12,5 +12,3 @@ Dockerfile
 docker-compose.yml
 .dockerignore
 npm-debug.log
-composer.lock
-package-lock.json
