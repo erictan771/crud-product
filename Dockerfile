@@ -50,7 +50,7 @@ COPY composer.json composer.lock ./
 RUN composer install --no-dev --optimize-autoloader --no-interaction --no-progress --no-scripts
 
 COPY . .
-RUN composer dump-autoload --no-dev --optimize --no-interaction --no-progress \
+RUN composer dump-autoload --no-dev --optimize --no-interaction \
   && php artisan package:discover --ansi
 
 COPY --from=frontend-builder /app/public/build ./public/build
