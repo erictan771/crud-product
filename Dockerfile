@@ -47,9 +47,12 @@ RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 COPY composer.json composer.lock ./
-RUN composer install --no-dev --optimize-autoloader --no-interaction --no-progress
+RUN composer install --no-dev --optimize-autoloader --no-interaction --no-progress --no-scripts
 
 COPY . .
+RUN composer dump-autoload --no-dev --optimize --no-interaction --no-progress \
+  && php artisan package:discover --ansi
+
 COPY --from=frontend-builder /app/public/build ./public/build
 
 RUN chown -R www-data:www-data storage bootstrap/cache \
