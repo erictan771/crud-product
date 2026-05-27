@@ -32,7 +32,7 @@ services:
     restart: unless-stopped
     environment:
       MYSQL_DATABASE: crud_docker
-      MYSQL_USER: crud-docker
+      MYSQL_USER: crud_docker
       MYSQL_PASSWORD: password    # Gantilah dengan password yang lebih aman
       MYSQL_ROOT_PASSWORD: root_password
     ports:
