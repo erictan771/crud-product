@@ -29,9 +29,9 @@ jobs:
       - name: Build & start containers
         shell: bash
         run: |
-          docker compose pull db web || true
+          docker compose pull || true
           docker compose build --pull
-          docker compose up -d
+          docker compose up -d --remove-orphans
 
       - name: Run migrations & seed
         shell: bash
