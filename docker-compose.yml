@@ -9,8 +9,7 @@ services:
     depends_on:
       - db
     volumes:
-      - .:/var/www
-      - ./.env:/var/www/.env
+      - ./.env:/var/www/.env:ro
     networks:
       - app-network
 
