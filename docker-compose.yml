@@ -8,8 +8,9 @@ services:
     restart: unless-stopped
     depends_on:
       - db
-    env_file:
-      - ./.env
+    volumes:
+      - .:/var/www
+      - ./.env:/var/www/.env:ro
     networks:
       - app-network
 
@@ -41,10 +42,10 @@ services:
     ports:
       - "3306:3306"
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p"]
+      test: ["CMD-SHELL", "mysqladmin ping -uroot -p$MYSQL_ROOT_PASSWORD --silent"]
       interval: 5s
-      timeout: 35s
-      retries: 10
+      timeout: 3s
+      retries: 30
     volumes:
       - v-db:/var/lib/mysql
     networks:
