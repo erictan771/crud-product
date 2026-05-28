@@ -15,7 +15,7 @@ class ProductSeeder extends Seeder
 
         $categories = ['General', 'Electronics', 'Books', 'Fashion'];
 
-        for ($i = 1; $i <= 25; $i++) {
+        for ($i = 1; $i <= 5; $i++) {
             Product::query()->create([
                 'name' => "Product {$i}",
                 'description' => "Seeded product #{$i}",

@@ -36,6 +36,11 @@ services:
       MYSQL_USER: crud_docker
       MYSQL_PASSWORD: password    # Gantilah dengan password yang lebih aman
       MYSQL_ROOT_PASSWORD: root_password
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p"]
+      interval: 5s
+      timeout: 35s
+      retries: 10
     ports:
       - "3306:3306"
     volumes:
