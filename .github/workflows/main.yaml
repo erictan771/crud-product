@@ -1,0 +1,46 @@
+name: Deploy (Docker Compose)
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch: {}
+
+concurrency:
+  group: deploy-main
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Write .env from secret
+        shell: bash
+        run: |
+          if [ -z "${{ secrets.PROD_ENV }}" ]; then
+            echo "Missing PROD_ENV secret"
+            exit 1
+          fi
+          printf '%s' "${{ secrets.PROD_ENV }}" > .env
+
+      - name: Build & start containers
+        shell: bash
+        run: |
+          docker compose pull db web || true
+          docker compose build --pull
+          docker compose up -d
+
+      - name: Run migrations & seed
+        shell: bash
+        run: |
+          docker compose exec -T app php artisan key:generate --force || true
+          docker compose exec -T app php artisan migrate --force
+          docker compose exec -T app php artisan db:seed --force
+
+      - name: Health check
+        shell: bash
+        run: |
+          curl -fsS -I http://localhost/ | head -n 1
