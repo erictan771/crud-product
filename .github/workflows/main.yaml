@@ -15,7 +15,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout
 
       - name: Write .env from secret
         shell: bash
@@ -29,6 +29,7 @@ jobs:
       - name: Build & start containers
         shell: bash
         run: |
+          docker compose down -v --remove-orphans
           docker compose pull || true
           docker compose build --pull
           docker compose up -d --remove-orphans
