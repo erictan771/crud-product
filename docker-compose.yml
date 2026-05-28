@@ -11,9 +11,6 @@ services:
     volumes:
       - .:/var/www
       - ./.env:/var/www/.env
-       - /var/www/vendor:/var/www/vendor
-       - /var/www/storage:/var/www/storage
-        - /var/www/node_modules:/var/www/node_modules
     networks:
       - app-network
 
