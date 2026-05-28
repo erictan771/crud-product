@@ -113,7 +113,7 @@ export default function AppRoot() {
                             </svg>
                         </div>
                         <div>
-                            <h1 className="text-lg font-bold text-white leading-tight">Product Manager 1111</h1>
+                            <h1 className="text-lg font-bold text-white leading-tight">Product Manager</h1>
                             <p className="text-xs text-gray-400">Kelola produk Anda dengan mudah</p>
                         </div>
                     </div>
