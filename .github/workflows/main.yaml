@@ -20,11 +20,54 @@ jobs:
       - name: Write .env from secret
         shell: bash
         run: |
+          set -euo pipefail
           if [ -z "${{ secrets.PROD_ENV }}" ]; then
             echo "Missing PROD_ENV secret"
             exit 1
           fi
           printf '%s' "${{ secrets.PROD_ENV }}" > .env
+
+          if ! grep -q '^DB_HOST=db
+      - name: Build & start containers
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker compose down --remove-orphans || true
+          docker compose pull || true
+          docker compose build --pull
+          docker compose up -d --remove-orphans --force-recreate
+
+      - name: Wait for MySQL
+        shell: bash
+        run: |
+          set -euo pipefail
+          for i in $(seq 1 60); do
+            if docker compose exec -T db sh -lc 'mysqladmin ping -uroot -p"$MYSQL_ROOT_PASSWORD" --silent'; then
+              echo "MySQL is ready"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "MySQL not ready"
+          docker compose logs --tail=200 db
+          exit 1
+
+      - name: Run migrations & seed
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker compose exec -T app php artisan key:generate --force || true
+          docker compose exec -T app php artisan migrate --force
+          docker compose exec -T app php artisan db:seed --force
+
+      - name: Health check
+        shell: bash
+        run: |
+          curl -fsS -I http://localhost/ | head -n 1
+ .env; then
+            echo "DB_HOST harus 'db' di PROD_ENV agar container app connect ke service db"
+            exit 1
+          fi
 
       - name: Build & start containers
         shell: bash
