@@ -60,8 +60,3 @@ RUN chown -R www-data:www-data storage bootstrap/cache \
 
 EXPOSE 9000
 CMD ["php-fpm"]
-
-# --- Nginx Web Stage ---
-FROM nginx:alpine AS web
-WORKDIR /var/www
-COPY --from=app /var/www /var/www

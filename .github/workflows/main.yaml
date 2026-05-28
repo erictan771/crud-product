@@ -34,22 +34,6 @@ jobs:
           docker compose pull || true
           docker compose build --pull
           docker compose up -d --remove-orphans
-
-      - name: Wait for MySQL
-        shell: bash
-        run: |
-          set -euo pipefail
-          for i in $(seq 1 60); do
-            if docker compose exec -T db sh -lc 'mysqladmin ping -uroot -p"$MYSQL_ROOT_PASSWORD" --silent'; then
-              echo "MySQL is ready"
-              exit 0
-            fi
-            sleep 2
-          done
-          echo "MySQL not ready"
-          docker compose logs --tail=200 db
-          exit 1
-
       - name: Run migrations & seed
         shell: bash
         run: |
