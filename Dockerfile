@@ -60,3 +60,13 @@ RUN chown -R www-data:www-data storage bootstrap/cache \
 
 EXPOSE 9000
 CMD ["php-fpm"]
+
+# --- Nginx Web Stage ---
+FROM nginx:1.27-alpine AS web
+WORKDIR /var/www
+
+COPY . .
+COPY --from=frontend-builder /app/public/build ./public/build
+
+EXPOSE 80
+CMD ["nginx", "-g", "daemon off;"]
