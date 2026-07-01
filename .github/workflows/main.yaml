@@ -8,12 +8,21 @@ concurrency:
   cancel-in-progress: true
 jobs:
   deploy:
-    runs-on: [self-hosted, Linux]
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - label: linux
+            runner: [self-hosted, Linux]
+          - label: windows
+            runner: [self-hosted, Windows]
+    runs-on: ${{ matrix.runner }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Write .env from secret
+      - name: Write .env from secret (Linux)
+        if: runner.os == 'Linux'
         shell: bash
         env:
           PROD_ENV: ${{ secrets.PROD_ENV }}
@@ -26,7 +35,25 @@ jobs:
               exit 1
             fi
             printf '%s' "$PROD_ENV" > .env
+            echo "Created .env from PROD_ENV secret."
           fi
+
+      - name: Write .env from secret (Windows)
+        if: runner.os == 'Windows'
+        shell: powershell
+        env:
+          PROD_ENV: ${{ secrets.PROD_ENV }}
+        run: |
+          if (Test-Path .env) {
+            Write-Output ".env already exists — skipping write from secret."
+          } else {
+            if ([string]::IsNullOrEmpty($env:PROD_ENV)) {
+              Write-Error "Missing PROD_ENV secret"
+              exit 1
+            }
+            Set-Content -Path .env -NoNewline -Value $env:PROD_ENV
+            Write-Output "Created .env from PROD_ENV secret."
+          }
 
       - name: Build images
         shell: bash
@@ -45,9 +72,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          docker service ls
-          # Give the rolling update a moment, then verify no replicas are down
           sleep 10
+          docker service ls
           docker stack ps myapp --filter "desired-state=running"
 
       - name: Run migrations & seed
@@ -55,10 +81,22 @@ jobs:
         run: |
           set -euo pipefail
           APP_CID=$(docker ps -q -f name=myapp_app | head -n1)
+          if [ -z "$APP_CID" ]; then
+            echo "No running app container found"
+            exit 1
+          fi
           docker exec "$APP_CID" php artisan key:generate --force || true
           docker exec "$APP_CID" php artisan migrate --force
           docker exec "$APP_CID" php artisan db:seed --force
 
-      - name: Health check
+      - name: Health check (Linux)
+        if: runner.os == 'Linux'
         shell: bash
         run: curl -fsS -I http://localhost/ | head -n 1
+
+      - name: Health check (Windows)
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: |
+          $res = Invoke-WebRequest -Uri http://localhost/ -Method Head -UseBasicParsing
+          "$($res.StatusCode) $($res.StatusDescription)"
