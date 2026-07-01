@@ -29,7 +29,7 @@ class ProductController extends Controller
             $query->where('category', $request->category);
         }
 
-        $perPage = $request->get('per_page', 10);
+        $perPage = $request->get('per_page', 5);
         $products = $query->latest()->paginate($perPage);
 
         return response()->json($products);
