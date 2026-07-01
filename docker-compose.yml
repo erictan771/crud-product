@@ -39,7 +39,7 @@ services:
       MYSQL_PASSWORD: password    # Gantilah dengan password yang lebih aman
       MYSQL_ROOT_PASSWORD: root_password
     ports:
-      - "3306:3306"
+      - "3307:3306"
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p"]
       interval: 5s
