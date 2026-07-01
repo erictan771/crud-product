@@ -5,7 +5,7 @@ on:
   workflow_dispatch: {}
 concurrency:
   group: deploy-main
-  cancel-in-progress: true
+  cancel-in-progress: false
 jobs:
   deploy:
     strategy:
