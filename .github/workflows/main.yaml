@@ -28,7 +28,7 @@ jobs:
           PROD_ENV: ${{ secrets.PROD_ENV }}
         run: |
           if [ -f .env ]; then
-            echo ".env already exists — skipping write from secret."
+            echo ".env already exists - skipping write from secret."
           else
             if [ -z "$PROD_ENV" ]; then
               echo "Missing PROD_ENV secret"
@@ -45,7 +45,7 @@ jobs:
           PROD_ENV: ${{ secrets.PROD_ENV }}
         run: |
           if (Test-Path .env) {
-            Write-Output ".env already exists — skipping write from secret."
+            Write-Output ".env already exists - skipping write from secret."
           } else {
             if ([string]::IsNullOrEmpty($env:PROD_ENV)) {
               Write-Error "Missing PROD_ENV secret"
