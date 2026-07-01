@@ -37,7 +37,7 @@ jobs:
 
       - name: Write .env from secret (Windows)
         if: runner.os == 'Windows'
-        shell: pwsh
+        shell: powershell
         env:
           PROD_ENV: ${{ secrets.PROD_ENV }}
         run: |
@@ -70,7 +70,7 @@ jobs:
 
       - name: Health check (Windows)
         if: runner.os == 'Windows'
-        shell: pwsh
+        shell: powershell
         run: |
           $res = Invoke-WebRequest -Uri http://localhost/ -Method Head -UseBasicParsing
           "$($res.StatusCode) $($res.StatusDescription)"
