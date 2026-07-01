@@ -1,76 +1,64 @@
-name: Deploy (Docker Compose)
+name: Deploy (Docker Swarm)
 on:
   push:
     branches: [ "main" ]
   workflow_dispatch: {}
-
 concurrency:
   group: deploy-main
   cancel-in-progress: true
-
 jobs:
   deploy:
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - label: linux
-            runner: [self-hosted, Linux]
-          - label: windows
-            runner: [self-hosted, Windows]
-    runs-on: ${{ matrix.runner }}
+    runs-on: [self-hosted, Linux]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Write .env from secret (Linux)
-        if: runner.os == 'Linux'
+      - name: Write .env from secret
         shell: bash
         env:
           PROD_ENV: ${{ secrets.PROD_ENV }}
         run: |
-          if [ -z "$PROD_ENV" ]; then
-            echo "Missing PROD_ENV secret"
-            exit 1
+          if [ -f .env ]; then
+            echo ".env already exists — skipping write from secret."
+          else
+            if [ -z "$PROD_ENV" ]; then
+              echo "Missing PROD_ENV secret"
+              exit 1
+            fi
+            printf '%s' "$PROD_ENV" > .env
           fi
-          printf '%s' "$PROD_ENV" > .env
 
-      - name: Write .env from secret (Windows)
-        if: runner.os == 'Windows'
-        shell: powershell
-        env:
-          PROD_ENV: ${{ secrets.PROD_ENV }}
-        run: |
-          if ([string]::IsNullOrEmpty($env:PROD_ENV)) {
-            Write-Error "Missing PROD_ENV secret"
-            exit 1
-          }
-          Set-Content -Path .env -NoNewline -Value $env:PROD_ENV
-
-      - name: Build & start containers
+      - name: Build images
         shell: bash
         run: |
           set -euo pipefail
-          docker compose pull || true
-          docker compose build --pull
-          docker compose up -d --remove-orphans
+          docker build --target app -t crud-product-app:latest .
+          docker build --target web -t crud-product-web:latest .
+
+      - name: Deploy stack (rolling update)
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker stack deploy -c docker-compose.yml myapp --with-registry-auth
+
+      - name: Wait for services to stabilize
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker service ls
+          # Give the rolling update a moment, then verify no replicas are down
+          sleep 10
+          docker stack ps myapp --filter "desired-state=running"
 
       - name: Run migrations & seed
         shell: bash
         run: |
           set -euo pipefail
-          docker compose exec -T app php artisan key:generate --force || true
-          docker compose exec -T app php artisan migrate --force
-          docker compose exec -T app php artisan db:seed --force
+          APP_CID=$(docker ps -q -f name=myapp_app | head -n1)
+          docker exec "$APP_CID" php artisan key:generate --force || true
+          docker exec "$APP_CID" php artisan migrate --force
+          docker exec "$APP_CID" php artisan db:seed --force
 
-      - name: Health check (Linux)
-        if: runner.os == 'Linux'
+      - name: Health check
         shell: bash
         run: curl -fsS -I http://localhost/ | head -n 1
-
-      - name: Health check (Windows)
-        if: runner.os == 'Windows'
-        shell: powershell
-        run: |
-          $res = Invoke-WebRequest -Uri http://localhost/ -Method Head -UseBasicParsing
-          "$($res.StatusCode) $($res.StatusDescription)"
